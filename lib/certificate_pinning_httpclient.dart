@@ -308,7 +308,12 @@ class CertificatePinningHttpClient implements HttpClient {
     // if we have an active connection to a different host we need to tear down the delegate
     // pinned HttpClient and create a new one with the correct pinning
     if (_connectedHost != url.host) {
-      final httpClient = await _createPinnedHttpClient(url);
+      final httpClient = await _createPinnedHttpClient(
+        Uri(
+          host: url.host,
+          scheme: url.scheme,
+        ),
+      );
       _delegatePinnedHttpClient.close();
       _delegatePinnedHttpClient = httpClient;
     }
