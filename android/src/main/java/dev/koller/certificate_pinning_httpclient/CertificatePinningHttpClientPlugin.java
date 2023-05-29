@@ -79,21 +79,7 @@ public class CertificatePinningHttpClientPlugin implements FlutterPlugin, Method
                 connection.disconnect();
                 result.success(hostCertificates);
             } catch (Exception e) {
-                try{
-                    final SSLSocketFactory url = new URL(call.argument("url"));
-                    HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-                    connection.setConnectTimeout(FETCH_CERTIFICATES_TIMEOUT_MS);
-                    connection.connect();
-                    Certificate[] certificates = connection.getServerCertificates();
-                    final List<byte[]> hostCertificates = new ArrayList<>(certificates.length);
-                    for (Certificate certificate : certificates) {
-                        hostCertificates.add(certificate.getEncoded());
-                    }
-                    connection.disconnect();
-                    result.success(hostCertificates);
-                }catch (Exception e){
-                    result.error("fetchHostCertificates", e.getLocalizedMessage(), null);
-                }
+                result.error("fetchHostCertificates", e.getLocalizedMessage(), null);
             }
         } else {
             result.notImplemented();
