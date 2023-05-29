@@ -28,7 +28,7 @@ class _CertificatePinningService {
     if (_hostCertificates[url.host] == null) {
       try {
         final arguments = <String, String>{
-          "url": url.host,
+          "url": "https://${url.host}",
         };
         final List<Object?>? fetchedHostCertificates =
             await _channel.invokeMethod('fetchHostCertificates', arguments);
