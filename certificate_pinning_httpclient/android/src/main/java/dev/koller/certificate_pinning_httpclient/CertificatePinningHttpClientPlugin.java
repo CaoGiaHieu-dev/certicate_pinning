@@ -22,7 +22,7 @@ import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.*;
 
 import androidx.annotation.NonNull;
 
@@ -67,20 +67,52 @@ public class CertificatePinningHttpClientPlugin implements FlutterPlugin, Method
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
         if (call.method.equals("fetchHostCertificates")) {
             try {
-                final URL url = new URL(call.argument("url"));
-                HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-                connection.setConnectTimeout(FETCH_CERTIFICATES_TIMEOUT_MS);
-                connection.connect();
-                Certificate[] certificates = connection.getServerCertificates();
+    String host = call.argument("url");
+    SSLContext context = SSLContext.getInstance("TLS");
+    TrustManager[] trustManagers = {new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    }};
+    context.init(null, trustManagers, null);
+    SSLSocketFactory socketFactory = context.getSocketFactory();
+    SSLSocket socket = (SSLSocket) socketFactory.createSocket(host, port);
+    socket.startHandshake();
+    SSLSession session = socket.getSession();
+    Certificate[] certificates = session.getPeerCertificates();
                 final List<byte[]> hostCertificates = new ArrayList<>(certificates.length);
-                for (Certificate certificate : certificates) {
+                for (Certificate cert : certificates) {
                     hostCertificates.add(certificate.getEncoded());
+                     Log.d("Certificate", cert.toString());
                 }
-                connection.disconnect();
-                result.success(hostCertificates);
-            } catch (Exception e) {
-                result.error("fetchHostCertificates", e.getLocalizedMessage(), null);
-            }
+  
+    result.success(hostCertificates);
+} catch (Exception e) {
+    e.printStackTrace();
+}
+//             try {
+//                 final URL url = new URL(call.argument("url"));
+//                 HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+//                 connection.connect();
+//                 Certificate[] certificates = connection.getServerCertificates();
+//                 final List<byte[]> hostCertificates = new ArrayList<>(certificates.length);
+//                 for (Certificate certificate : certificates) {
+//                     hostCertificates.add(certificate.getEncoded());
+//                 }
+//                 connection.disconnect();
+//                 result.success(hostCertificates);
+//             } catch (Exception e) {
+//                 result.error("fetchHostCertificates", e.getLocalizedMessage(), null);
+//             }
         } else {
             result.notImplemented();
         }
