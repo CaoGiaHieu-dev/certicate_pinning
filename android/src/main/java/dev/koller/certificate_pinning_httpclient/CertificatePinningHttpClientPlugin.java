@@ -22,7 +22,7 @@ import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.*;
 
 import androidx.annotation.NonNull;
 
@@ -33,6 +33,10 @@ import io.flutter.plugin.common.StandardMethodCodec;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.cert.*;
 
 // CertificatePinningHttpClientPlugin provides the bridge to the Approov SDK itself. Methods are initiated using the
 // MethodChannel to call various methods within the SDK. A facility is also provided to probe the certificates
@@ -67,20 +71,38 @@ public class CertificatePinningHttpClientPlugin implements FlutterPlugin, Method
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
         if (call.method.equals("fetchHostCertificates")) {
             try {
-                final URL url = new URL(call.argument("url"));
-                HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-                connection.setConnectTimeout(FETCH_CERTIFICATES_TIMEOUT_MS);
-                connection.connect();
-                Certificate[] certificates = connection.getServerCertificates();
+    final URL url = new URL(call.argument("url"));
+    String host = url.getHost();
+    SSLContext context = SSLContext.getInstance("TLS");
+    TrustManager[] trustManagers = {new X509TrustManager() {
+       @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    }};
+    context.init(null, trustManagers, null);
+    SSLSocketFactory socketFactory = context.getSocketFactory();
+    SSLSocket socket = (SSLSocket) socketFactory.createSocket(host, 443);
+    socket.startHandshake();
+    SSLSession session = socket.getSession();
+    Certificate[] certificates = session.getPeerCertificates();
                 final List<byte[]> hostCertificates = new ArrayList<>(certificates.length);
-                for (Certificate certificate : certificates) {
-                    hostCertificates.add(certificate.getEncoded());
+                for (Certificate cert : certificates) {
+                    hostCertificates.add(cert.getEncoded());
                 }
-                connection.disconnect();
-                result.success(hostCertificates);
-            } catch (Exception e) {
-                result.error("fetchHostCertificates", e.getLocalizedMessage(), null);
-            }
+  
+    result.success(hostCertificates);
+} catch (Exception e) {
+    e.printStackTrace();
+}
         } else {
             result.notImplemented();
         }
