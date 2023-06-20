@@ -46,7 +46,8 @@ public class CertificatePinningHttpClientPlugin implements FlutterPlugin, Method
 
     // The MethodChannel for the communication between Flutter and native Android
     //
-    // This local reference serves to register the plugin with the Flutter Engine and unregister it
+    // This local reference serves to register the plugin with the Flutter Engine
+    // and unregister it
     // when the Flutter Engine is detached from the Activity
     private MethodChannel channel;
 
@@ -55,7 +56,8 @@ public class CertificatePinningHttpClientPlugin implements FlutterPlugin, Method
 
     // Application context passed to Approov initialization
 
-    // Provides any prior initial configuration supplied, to allow a reinitialization caused by
+    // Provides any prior initial configuration supplied, to allow a
+    // reinitialization caused by
     // a hot restart if the configuration is the same
     private static String initializedConfig;
 
@@ -71,38 +73,40 @@ public class CertificatePinningHttpClientPlugin implements FlutterPlugin, Method
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
         if (call.method.equals("fetchHostCertificates")) {
             try {
-    final URL url = new URL(call.argument("url"));
-    String host = url.getHost();
-    SSLContext context = SSLContext.getInstance("TLS");
-    TrustManager[] trustManagers = {new X509TrustManager() {
-       @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-        }
+                final URL url = new URL(call.argument("url"));
+                String host = url.getHost();
+                SSLContext context = SSLContext.getInstance("TLS");
+                TrustManager[] trustManagers = { new X509TrustManager() {
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] chain, String authType)
+                            throws CertificateException {
+                    }
 
-        @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-        }
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] chain, String authType)
+                            throws CertificateException {
+                    }
 
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
-    }};
-    context.init(null, trustManagers, null);
-    SSLSocketFactory socketFactory = context.getSocketFactory();
-    SSLSocket socket = (SSLSocket) socketFactory.createSocket(host, 443);
-    socket.startHandshake();
-    SSLSession session = socket.getSession();
-    Certificate[] certificates = session.getPeerCertificates();
+                    @Override
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
+                } };
+                context.init(null, trustManagers, null);
+                SSLSocketFactory socketFactory = context.getSocketFactory();
+                SSLSocket socket = (SSLSocket) socketFactory.createSocket(host, 443);
+                socket.startHandshake();
+                SSLSession session = socket.getSession();
+                Certificate[] certificates = session.getPeerCertificates();
                 final List<byte[]> hostCertificates = new ArrayList<>(certificates.length);
                 for (Certificate cert : certificates) {
                     hostCertificates.add(cert.getEncoded());
                 }
-  
-    result.success(hostCertificates);
-} catch (Exception e) {
-    e.printStackTrace();
-}
+
+                result.success(hostCertificates);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         } else {
             result.notImplemented();
         }
