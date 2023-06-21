@@ -8,7 +8,7 @@ import 'package:pem/pem.dart';
 
 final Logger _log = Logger();
 
-class _CertificatePinningService {
+class CertificatePinningService {
   // logging tag
   static const String _tag = "CertificatePinningHttpClient";
 
@@ -59,7 +59,7 @@ class _CertificatePinningService {
       Uri url, Set<String> validPins) async {
     // get certificates for host
     final hostCertificates =
-        await _CertificatePinningService._getHostCertificates(url);
+        await CertificatePinningService._getHostCertificates(url);
     if (hostCertificates == null) {
       // if there are none then we return an empty list, which will cause a failure when we try and connect
       _log.d("$_tag: Cannot get certificates for $url");
@@ -95,12 +95,12 @@ class _CertificatePinningService {
   /// @param url of the host that is being pinned
   /// @param validPins is the set of pins for the host
   /// @return a security context that enforces pinning by using the host certificates that match the pins
-  static Future<SecurityContext> _pinnedSecurityContext(
+  static Future<SecurityContext> pinnedSecurityContext(
       Uri url, Set<String> validPins) async {
     // determine the list of X.509 ASN.1 DER host certificates that match any pins for the host - if this
     // returns an empty list then nothing will be trusted
     final List<Uint8List> pinCerts =
-        await _CertificatePinningService._hostPinCertificates(url, validPins);
+        await CertificatePinningService._hostPinCertificates(url, validPins);
 
     // add the certificates to create the security context of trusted certs
     final securityContext = SecurityContext();
@@ -215,7 +215,7 @@ class CertificatePinningHttpClient implements HttpClient {
 
     // reset host certificates and delegate pinned HttpClient connected host to force them to be recreated
     _log.d("$_tag: Pinning failure callback for $host");
-    _CertificatePinningService._removeCertificates(host);
+    CertificatePinningService._removeCertificates(host);
     _connectedHost = null;
     return false;
   }
@@ -233,7 +233,7 @@ class CertificatePinningHttpClient implements HttpClient {
       newHttpClient = HttpClient();
     } else {
       final securityContext =
-          await _CertificatePinningService._pinnedSecurityContext(
+          await CertificatePinningService.pinnedSecurityContext(
               url, _validPins);
       newHttpClient = HttpClient(context: securityContext);
     }
